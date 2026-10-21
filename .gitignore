@@ -1,0 +1,27 @@
+# Build
+bin/
+obj/
+dist/
+*.user
+.vs/
+.idea/
+*.swp
+
+# Python
+__pycache__/
+*.pyc
+
+# Saídas de teste (tools/)
+testset/
+bench-out/
+oracle-out/
+kracheck-out/
+
+# Claude Code: preferências locais
+.claude/settings.local.json
+
+# Krita: backups e autosaves
+*.kra~
+*.krz~
+.*-autosave.kra
+.*-autosave.krz

@@ -1,0 +1,599 @@
+<Window x:Class="Atlasmith.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ctl="clr-namespace:Atlasmith.Controls"
+        Title="Atlasmith"
+        Width="1180" Height="760"
+        MinWidth="960" MinHeight="620"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        AllowDrop="True"
+        Background="{DynamicResource Brush.Window}"
+        TextOptions.TextFormattingMode="Ideal"
+        UseLayoutRounding="True"
+        Drop="OnWindowDrop"
+        DragOver="OnWindowDragOver">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="46"
+                      ResizeBorderThickness="6"
+                      CornerRadius="0"
+                      GlassFrameThickness="0"
+                      UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
+    <!-- O atalho Ctrl+G é tratado em OnPreviewKeyDown, não por CommandBinding:
+         o CommandConverter resolve o comando pelo nome e, ao fazer isso, manda o
+         WPF carregar todos os assemblies do seu namespace XML (Ribbon, XPS,
+         impressão) — justamente os que o pacote não inclui.
+
+         Os textos vêm de {DynamicResource T.*}, preenchidos por Localization.Texts:
+         trocar o idioma atualiza a janela sem reabrir. -->
+
+    <Window.Resources>
+        <DrawingBrush x:Key="CheckerBrush"
+                      TileMode="Tile"
+                      Viewport="0,0,22,22"
+                      ViewportUnits="Absolute"
+                      Stretch="None">
+            <DrawingBrush.Drawing>
+                <GeometryDrawing Brush="#12000000">
+                    <GeometryDrawing.Geometry>
+                        <GeometryGroup>
+                            <RectangleGeometry Rect="0,0,11,11" />
+                            <RectangleGeometry Rect="11,11,11,11" />
+                        </GeometryGroup>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+            </DrawingBrush.Drawing>
+        </DrawingBrush>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="46" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- ============================ BARRA DE TÍTULO ============================ -->
+        <Grid Grid.Row="0" Background="{DynamicResource Brush.Surface}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
+                <Border Width="22" Height="22" CornerRadius="6"
+                        Background="{DynamicResource Brush.AccentGradient}">
+                    <Path Fill="White" Stretch="Uniform" Margin="5"
+                          Data="M0,0 H5 V7 H0 Z M6,0 H12 V3 H6 Z M6,4 H12 V7 H6 Z" />
+                </Border>
+                <TextBlock Text="Atlasmith" Style="{StaticResource Text.Title}"
+                           Margin="10,0,0,0" VerticalAlignment="Center" />
+                <Border Background="{DynamicResource Brush.AccentSoft}" CornerRadius="5"
+                        Padding="6,2" Margin="9,1,0,0" VerticalAlignment="Center">
+                    <TextBlock x:Name="VersionBadge" Text="1.0" FontSize="10" FontWeight="SemiBold"
+                               Foreground="{DynamicResource Brush.Accent}" />
+                </Border>
+            </StackPanel>
+
+            <ComboBox x:Name="LanguageCombo"
+                      Grid.Column="2"
+                      Width="112" Height="30"
+                      Margin="0,0,8,0"
+                      VerticalAlignment="Center"
+                      Style="{StaticResource ComboBox.Field}"
+                      ToolTip="{DynamicResource T.LanguageTip}"
+                      WindowChrome.IsHitTestVisibleInChrome="True"
+                      SelectionChanged="OnLanguageChanged">
+                <ComboBoxItem Content="{DynamicResource T.LanguageAuto}" />
+                <ComboBoxItem Content="Português" />
+                <ComboBoxItem Content="English" />
+            </ComboBox>
+
+            <ComboBox x:Name="ThemeCombo"
+                      Grid.Column="3"
+                      Width="112" Height="30"
+                      Margin="0,0,10,0"
+                      VerticalAlignment="Center"
+                      Style="{StaticResource ComboBox.Field}"
+                      ToolTip="{DynamicResource T.ThemeTip}"
+                      WindowChrome.IsHitTestVisibleInChrome="True"
+                      SelectionChanged="OnThemeChanged">
+                <ComboBoxItem Content="{DynamicResource T.ThemeSystem}" />
+                <ComboBoxItem Content="{DynamicResource T.ThemeLight}" />
+                <ComboBoxItem Content="{DynamicResource T.ThemeDark}" />
+            </ComboBox>
+
+            <StackPanel Grid.Column="4" Orientation="Horizontal">
+                <Button Style="{StaticResource Button.Caption}"
+                        Content="{StaticResource Icon.Minimize}"
+                        ToolTip="{DynamicResource T.Minimize}"
+                        Click="OnMinimize" />
+                <Button x:Name="MaximizeButton"
+                        Style="{StaticResource Button.Caption}"
+                        Content="{StaticResource Icon.Maximize}"
+                        ToolTip="{DynamicResource T.Maximize}"
+                        Click="OnMaximizeRestore" />
+                <Button Style="{StaticResource Button.Close}"
+                        Content="{StaticResource Icon.Close}"
+                        ToolTip="{DynamicResource T.CloseWindow}"
+                        Click="OnClose" />
+            </StackPanel>
+        </Grid>
+
+        <!-- ============================ CONTEÚDO ============================ -->
+        <Grid Grid.Row="1" Margin="14,12,14,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="372" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- PAINEL DE CONFIGURAÇÃO -->
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <ScrollViewer Grid.Row="0"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled"
+                              Padding="0,0,6,0">
+                    <StackPanel>
+
+                        <!-- ATLAS SALVOS -->
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,10">
+                                    <TextBlock Text="{DynamicResource T.SectionSaved}" Style="{StaticResource Text.Section}"
+                                               Margin="0" VerticalAlignment="Center" />
+                                    <Button x:Name="NewAtlasButton"
+                                            Style="{StaticResource Button.Link}"
+                                            Content="{DynamicResource T.NewAtlas}"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Center"
+                                            ToolTip="{DynamicResource T.NewAtlasTip}"
+                                            Click="OnNewAtlas" />
+                                </Grid>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox x:Name="AtlasCombo"
+                                              Grid.Column="0"
+                                              Style="{StaticResource ComboBox.Atlas}"
+                                              SelectionChanged="OnAtlasSelected" />
+                                    <Button x:Name="RemoveAtlasButton"
+                                            Grid.Column="1"
+                                            Style="{StaticResource Button.Remove}"
+                                            Content="{StaticResource Icon.Trash}"
+                                            Margin="7,0,0,0"
+                                            IsEnabled="False"
+                                            ToolTip="{DynamicResource T.RemoveAtlasTip}"
+                                            Click="OnRemoveAtlas" />
+                                </Grid>
+
+                                <Grid Margin="2,9,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="AtlasSummary"
+                                               Grid.Column="0"
+                                               Style="{StaticResource Text.Hint}" />
+                                    <Button x:Name="RevertAtlasButton"
+                                            Grid.Column="1"
+                                            Style="{StaticResource Button.Link}"
+                                            Content="{DynamicResource T.Revert}"
+                                            Margin="12,0,0,0"
+                                            VerticalAlignment="Top"
+                                            Visibility="Collapsed"
+                                            ToolTip="{DynamicResource T.RevertTip}"
+                                            Click="OnRevertAtlas" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ENTRADA -->
+                        <Border Style="{StaticResource Card}" Margin="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock Text="{DynamicResource T.SectionInput}" Style="{StaticResource Text.Section}" />
+
+                                <Grid Margin="0,0,0,14">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,14,0">
+                                        <TextBlock Text="{DynamicResource T.ReadKrita}" Style="{StaticResource Text.Label}" />
+                                        <TextBlock Text="{DynamicResource T.ReadKritaHint}"
+                                                   Style="{StaticResource Text.Hint}" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                    <CheckBox x:Name="KraToggle"
+                                              Grid.Column="1"
+                                              Style="{StaticResource CheckBox.Toggle}"
+                                              VerticalAlignment="Center"
+                                              Checked="OnInputModeToggled"
+                                              Unchecked="OnInputModeToggled" />
+                                </Grid>
+
+                                <!-- Só faz sentido lendo do Krita: aparece junto com o modo. -->
+                                <Grid x:Name="HiddenLayersRow" Margin="0,0,0,14" Visibility="Collapsed">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,14,0">
+                                        <TextBlock Text="{DynamicResource T.IgnoreHidden}" Style="{StaticResource Text.Label}" />
+                                        <TextBlock Text="{DynamicResource T.IgnoreHiddenHint}"
+                                                   Style="{StaticResource Text.Hint}" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                    <CheckBox x:Name="IgnoreHiddenToggle"
+                                              Grid.Column="1"
+                                              Style="{StaticResource CheckBox.Toggle}"
+                                              VerticalAlignment="Center"
+                                              Checked="OnIgnoreHiddenToggled"
+                                              Unchecked="OnIgnoreHiddenToggled" />
+                                </Grid>
+
+                                <TextBlock x:Name="InputLabel"
+                                           Style="{StaticResource Text.Label}"
+                                           Margin="0,0,0,6" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="InputBox"
+                                             Grid.Column="0"
+                                             Style="{StaticResource TextBox.Field}"
+                                             LostFocus="OnInputPathEdited" />
+                                    <Button Grid.Column="1"
+                                            Style="{StaticResource Button.Secondary}"
+                                            Content="{DynamicResource T.Browse}"
+                                            Margin="7,0,0,0"
+                                            Click="OnBrowseInput" />
+                                </Grid>
+
+                                <TextBlock x:Name="InputSummary"
+                                           Style="{StaticResource Text.Hint}"
+                                           Margin="2,9,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- SAÍDA -->
+                        <Border Style="{StaticResource Card}" Margin="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock Text="{DynamicResource T.SectionOutput}" Style="{StaticResource Text.Section}" />
+
+                                <TextBlock Text="{DynamicResource T.OutputFolder}" Style="{StaticResource Text.Label}"
+                                           Margin="0,0,0,6" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="OutputBox"
+                                             Grid.Column="0"
+                                             Style="{StaticResource TextBox.Field}"
+                                             LostFocus="OnOutputPathEdited" />
+                                    <Button Grid.Column="1"
+                                            Style="{StaticResource Button.Secondary}"
+                                            Content="{DynamicResource T.Browse}"
+                                            Margin="7,0,0,0"
+                                            Click="OnBrowseOutput" />
+                                </Grid>
+
+                                <TextBlock Text="{DynamicResource T.AtlasName}" Style="{StaticResource Text.Label}"
+                                           Margin="0,14,0,6" />
+                                <TextBox x:Name="NameBox"
+                                         Style="{StaticResource TextBox.Field}"
+                                         TextChanged="OnNameChanged" />
+
+                                <Grid Margin="0,14,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="196" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
+                                        <TextBlock Text="{DynamicResource T.SheetFormat}" Style="{StaticResource Text.Label}" />
+                                    </StackPanel>
+                                    <ComboBox x:Name="FormatCombo" Grid.Column="1"
+                                              Style="{StaticResource ComboBox.Field}"
+                                              ToolTip="{DynamicResource T.SheetFormatHint}"
+                                              SelectionChanged="OnComboSetting">
+                                        <ComboBoxItem Content="{DynamicResource T.FormatAtlasmith}" />
+                                        <ComboBoxItem Content="{DynamicResource T.FormatTpSheet}" />
+                                        <ComboBoxItem Content="{DynamicResource T.FormatBoth}" />
+                                    </ComboBox>
+                                </Grid>
+
+                                <TextBlock x:Name="OutputSummary"
+                                           Style="{StaticResource Text.Hint}"
+                                           Margin="2,9,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- EMPACOTAMENTO -->
+                        <Border Style="{StaticResource Card}" Margin="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock Text="{DynamicResource T.SectionPacking}" Style="{StaticResource Text.Section}" />
+
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="106" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <TextBlock Text="{DynamicResource T.Padding}" Style="{StaticResource Text.Label}" />
+                                        <TextBlock Text="{DynamicResource T.PaddingHint}"
+                                                   Style="{StaticResource Text.Hint}" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                    <ctl:NumberBox x:Name="PaddingBox" Grid.Column="1"
+                                                   Minimum="0" Maximum="64" Step="1"
+                                                   ValueCommitted="OnNumberSetting" />
+                                </Grid>
+
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="106" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <TextBlock Text="{DynamicResource T.Border}" Style="{StaticResource Text.Label}" />
+                                        <TextBlock Text="{DynamicResource T.BorderHint}"
+                                                   Style="{StaticResource Text.Hint}" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                    <ctl:NumberBox x:Name="BorderBox" Grid.Column="1"
+                                                   Minimum="0" Maximum="64" Step="1"
+                                                   ValueCommitted="OnNumberSetting" />
+                                </Grid>
+
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="106" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <TextBlock Text="{DynamicResource T.Extrude}" Style="{StaticResource Text.Label}" />
+                                        <TextBlock Text="{DynamicResource T.ExtrudeHint}"
+                                                   Style="{StaticResource Text.Hint}" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                    <ctl:NumberBox x:Name="ExtrudeBox" Grid.Column="1"
+                                                   Minimum="0" Maximum="16" Step="1"
+                                                   ValueCommitted="OnNumberSetting" />
+                                </Grid>
+
+                                <Grid Margin="0,4,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="106" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{DynamicResource T.MaxSize}"
+                                               Style="{StaticResource Text.Label}" />
+                                    <ComboBox x:Name="MaxSizeCombo" Grid.Column="1"
+                                              Style="{StaticResource ComboBox.Field}"
+                                              SelectionChanged="OnComboSetting">
+                                        <ComboBoxItem Content="512" />
+                                        <ComboBoxItem Content="1024" />
+                                        <ComboBoxItem Content="2048" />
+                                        <ComboBoxItem Content="4096" />
+                                        <ComboBoxItem Content="8192" />
+                                        <ComboBoxItem Content="16384" />
+                                    </ComboBox>
+                                </Grid>
+
+                                <Border Height="1" Background="{DynamicResource Brush.Border}" Margin="0,16,0,12" />
+
+                                <!-- Coluna própria para o toggle: sem ela o texto de apoio
+                                     passa por baixo do switch em vez de quebrar linha. -->
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,14,0">
+                                        <TextBlock Text="{DynamicResource T.PowerOfTwo}" Style="{StaticResource Text.Label}" />
+                                        <TextBlock Text="{DynamicResource T.PowerOfTwoHint}"
+                                                   Style="{StaticResource Text.Hint}" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                    <CheckBox x:Name="PowerOfTwoToggle"
+                                              Grid.Column="1"
+                                              Style="{StaticResource CheckBox.Toggle}"
+                                              VerticalAlignment="Center"
+                                              Checked="OnToggleSetting"
+                                              Unchecked="OnToggleSetting" />
+                                </Grid>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,14,0">
+                                        <TextBlock Text="{DynamicResource T.Square}" Style="{StaticResource Text.Label}" />
+                                        <TextBlock Text="{DynamicResource T.SquareHint}"
+                                                   Style="{StaticResource Text.Hint}" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                    <CheckBox x:Name="SquareToggle"
+                                              Grid.Column="1"
+                                              Style="{StaticResource CheckBox.Toggle}"
+                                              VerticalAlignment="Center"
+                                              Checked="OnToggleSetting"
+                                              Unchecked="OnToggleSetting" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Style="{StaticResource Text.Hint}"
+                                   Margin="4,12,4,4"
+                                   Text="{DynamicResource T.StorageNote}" />
+                    </StackPanel>
+                </ScrollViewer>
+
+                <Button x:Name="GenerateButton"
+                        Grid.Row="1"
+                        Style="{StaticResource Button.Primary}"
+                        Content="{DynamicResource T.Generate}"
+                        Height="46"
+                        FontSize="14"
+                        Margin="0,12,6,0"
+                        Click="OnGenerate" />
+            </Grid>
+
+            <!-- PREVIEW -->
+            <Border Grid.Column="2" Style="{StaticResource Card}" Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- métricas -->
+                    <Grid Grid.Row="0" Margin="16,14,16,12">
+                        <StackPanel Orientation="Horizontal">
+                            <StackPanel Margin="0,0,26,0">
+                                <TextBlock Text="{DynamicResource T.MetricSize}" Style="{StaticResource Text.Section}" Margin="0,0,0,3" />
+                                <TextBlock x:Name="MetricSize" Text="—" Style="{StaticResource Text.Metric}" />
+                            </StackPanel>
+                            <StackPanel Margin="0,0,26,0">
+                                <TextBlock Text="{DynamicResource T.MetricOccupancy}" Style="{StaticResource Text.Section}" Margin="0,0,0,3" />
+                                <TextBlock x:Name="MetricOccupancy" Text="—" Style="{StaticResource Text.Metric}" />
+                            </StackPanel>
+                            <StackPanel Margin="0,0,26,0">
+                                <TextBlock Text="{DynamicResource T.MetricSprites}" Style="{StaticResource Text.Section}" Margin="0,0,0,3" />
+                                <TextBlock x:Name="MetricCount" Text="—" Style="{StaticResource Text.Metric}" />
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Text="{DynamicResource T.MetricTime}" Style="{StaticResource Text.Section}" Margin="0,0,0,3" />
+                                <TextBlock x:Name="MetricTime" Text="—" Style="{StaticResource Text.Metric}" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <CheckBox x:Name="OutlineToggle"
+                                      Style="{StaticResource CheckBox.Toggle}"
+                                      VerticalAlignment="Center"
+                                      ToolTip="{DynamicResource T.OutlinesTip}"
+                                      Checked="OnToggleOutlines"
+                                      Unchecked="OnToggleOutlines" />
+                            <Button Style="{StaticResource Button.Ghost}" Content="{DynamicResource T.Fit}"
+                                    Margin="10,0,0,0" Click="OnZoomFit" />
+                            <Button Style="{StaticResource Button.Ghost}" Content="1:1"
+                                    Click="OnZoomActual" />
+                            <Button x:Name="OpenFolderButton"
+                                    Style="{StaticResource Button.Secondary}"
+                                    Content="{DynamicResource T.OpenFolder}"
+                                    Margin="8,0,0,0"
+                                    IsEnabled="False"
+                                    Click="OnOpenOutputFolder" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- viewport -->
+                    <Border Grid.Row="1"
+                            Margin="16,0,16,0"
+                            CornerRadius="10"
+                            Background="{DynamicResource Brush.SurfaceAlt}"
+                            BorderBrush="{DynamicResource Brush.Border}"
+                            BorderThickness="1"
+                            ClipToBounds="True">
+                        <Grid x:Name="Viewport"
+                              Background="{StaticResource CheckerBrush}"
+                              ClipToBounds="True"
+                              MouseWheel="OnViewportWheel"
+                              MouseLeftButtonDown="OnViewportMouseDown"
+                              MouseLeftButtonUp="OnViewportMouseUp"
+                              MouseMove="OnViewportMouseMove"
+                              Cursor="Arrow">
+
+                            <Canvas x:Name="PreviewLayer"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Top"
+                                    RenderTransformOrigin="0,0">
+                                <Canvas.RenderTransform>
+                                    <TransformGroup>
+                                        <ScaleTransform x:Name="PreviewScale" ScaleX="1" ScaleY="1" />
+                                        <TranslateTransform x:Name="PreviewTranslate" X="0" Y="0" />
+                                    </TransformGroup>
+                                </Canvas.RenderTransform>
+
+                                <Image x:Name="AtlasImage"
+                                       Canvas.Left="0" Canvas.Top="0"
+                                       RenderOptions.BitmapScalingMode="NearestNeighbor"
+                                       SnapsToDevicePixels="True" />
+
+                                <Path x:Name="OutlineLayer"
+                                      Stroke="{DynamicResource Brush.Accent}"
+                                      StrokeThickness="1"
+                                      Visibility="Collapsed" />
+                            </Canvas>
+
+                            <StackPanel x:Name="EmptyState"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                <Border Width="52" Height="52" CornerRadius="14"
+                                        Background="{DynamicResource Brush.AccentSoft}"
+                                        HorizontalAlignment="Center">
+                                    <Path Fill="{DynamicResource Brush.Accent}" Stretch="Uniform" Margin="14"
+                                          Data="M0,0 H5 V7 H0 Z M6,0 H12 V3 H6 Z M6,4 H12 V7 H6 Z" />
+                                </Border>
+                                <TextBlock Text="{DynamicResource T.EmptyTitle}"
+                                           Style="{StaticResource Text.Title}"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,14,0,0" />
+                                <TextBlock Text="{DynamicResource T.EmptyHint}"
+                                           Style="{StaticResource Text.Hint}"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,5,0,0" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- log -->
+                    <Border Grid.Row="2" Margin="16,12,16,14">
+                        <ScrollViewer x:Name="LogScroll"
+                                      Height="86"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <TextBlock x:Name="LogText"
+                                       FontFamily="{DynamicResource Font.Mono}"
+                                       FontSize="11"
+                                       LineHeight="16"
+                                       Foreground="{DynamicResource Brush.TextMuted}"
+                                       TextWrapping="Wrap" />
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ============================ RODAPÉ ============================ -->
+        <Grid Grid.Row="2" Height="34">
+            <ProgressBar x:Name="Progress"
+                         Style="{StaticResource ProgressBar.Thin}"
+                         VerticalAlignment="Top"
+                         Margin="14,0"
+                         Visibility="Collapsed" />
+            <TextBlock x:Name="StatusText"
+                       Style="{StaticResource Text.Hint}"
+                       Margin="16,0,0,0"
+                       VerticalAlignment="Center" />
+            <TextBlock x:Name="StatusRight"
+                       Style="{StaticResource Text.Hint}"
+                       HorizontalAlignment="Right"
+                       Margin="0,0,16,0"
+                       VerticalAlignment="Center" />
+        </Grid>
+    </Grid>
+</Window>

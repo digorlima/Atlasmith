@@ -1,0 +1,19 @@
+{
+    "name": "Atlasmith.Editor",
+    "rootNamespace": "Atlasmith.Editor",
+    "references": [
+        "Atlasmith.Core",
+        "Unity.2D.Sprite.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

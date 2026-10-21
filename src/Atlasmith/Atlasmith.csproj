@@ -1,0 +1,79 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>Atlasmith</AssemblyName>
+    <RootNamespace>Atlasmith</RootNamespace>
+    <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+    <Version>1.0.0</Version>
+    <AssemblyTitle>Atlasmith</AssemblyTitle>
+    <Product>Atlasmith</Product>
+    <Company>Daigo</Company>
+    <Copyright>© 2026 Daigo</Copyright>
+    <!-- InvariantGlobalization NÃO pode ser ligado: o cache de fontes do WPF
+         (MS.Internal.FontCache.MajorLanguages) exige culturas reais e derruba
+         o processo com CultureNotFoundException ao renderizar texto. -->
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <!--
+    O WPF não suporta PublishTrimmed (NETSDK1168), então o enxugamento é feito à
+    mão: removemos do pacote os componentes do runtime que este app comprovadamente
+    não usa. Passe -p:PruneRuntime=false para publicar o runtime completo.
+
+    O que sai, e por quê:
+      diagnóstico  - mscordaccore/mscordbi/DiaSymReader/createdump só entram em ação
+                     com um depurador anexado ou ao gravar crash dump.
+      impressão    - ReachFramework/System.Printing/PresentationUI servem a XPS e
+                     aos diálogos de impressão.
+      Ribbon       - controle que não usamos.
+      dados        - a ponte do WPF para DataSet e o System.Data; nosso binding é
+                     todo em código. O XML FICA (System.Private.Xml e as pontes
+                     PresentationFramework-SystemXml*): copiar texto de um TextBox
+                     serializa a seleção em XAML e, sem ele, o app fecha no Ctrl+C.
+      rede         - o app não faz nenhuma requisição.
+
+    O que parece dispensável mas FICA:
+      D3DCompiler_47_cor3.dll - o wpfgfx_cor3.dll (o renderizador do WPF) o importa
+                     direto; sem ele nenhuma janela abre. A 2.1 o removia e só abria
+                     em PCs com uma cópia no PATH (o Windows Performance Toolkit traz).
+      XML          - ver "dados" acima.
+    A autoverificação (opção self-check do Atlasmith.exe) confere os dois no
+    executável publicado.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Atlasmith.Core\Atlasmith.Core.csproj" />
+  </ItemGroup>
+
+  <Target Name="PruneUnusedRuntimeFiles"
+          AfterTargets="ComputeResolvedFilesToPublishList"
+          Condition="'$(PruneRuntime)' != 'false'">
+
+    <PropertyGroup>
+      <_PruneList>;mscordbi.dll;createdump.exe;Microsoft.DiaSymReader.Native.amd64.dll;</_PruneList>
+      <_PruneList>$(_PruneList)System.Windows.Controls.Ribbon.dll;</_PruneList>
+      <_PruneList>$(_PruneList)ReachFramework.dll;System.Printing.dll;PresentationUI.dll;</_PruneList>
+      <_PruneList>$(_PruneList)PresentationFramework-SystemData.dll;</_PruneList>
+      <_PruneList>$(_PruneList)System.Data.Common.dll;System.Private.DataContractSerialization.dll;</_PruneList>
+      <_PruneList>$(_PruneList)System.Net.Http.dll;System.Linq.AsyncEnumerable.dll;</_PruneList>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_PrunedFile Include="@(ResolvedFileToPublish)"
+                   Condition="$(_PruneList.Contains(';%(Filename)%(Extension);'))
+                              Or $([System.String]::Copy('%(Filename)').StartsWith('mscordaccore'))" />
+      <ResolvedFileToPublish Remove="@(_PrunedFile)" />
+    </ItemGroup>
+
+    <Message Importance="high"
+             Text="PruneUnusedRuntimeFiles: @(_PrunedFile->Count()) arquivos removidos do pacote." />
+  </Target>
+
+</Project>

@@ -1,0 +1,29 @@
+{
+  "name": "com.daigo.atlasmith",
+  "displayName": "Atlasmith",
+  "version": "1.0.0",
+  "unity": "2022.3",
+  "description": "Sprite atlases straight from Krita files. Right-click a .kra or .krz in the Project window and choose Create Atlas: the layers named in the name-name pattern become sprites, packed into a PNG plus an .atlasmith.json sheet. The bundled importer turns that sheet into sprites and keeps every sprite's ID by name, so references in scenes and prefabs survive each regeneration. Also converts TexturePacker .tpsheet atlases without breaking references.",
+  "keywords": [
+    "sprite",
+    "atlas",
+    "spritesheet",
+    "krita",
+    "kra",
+    "texture packer",
+    "tpsheet",
+    "importer",
+    "2d"
+  ],
+  "author": {
+    "name": "Daigo",
+    "url": "https://github.com/digorlima"
+  },
+  "license": "MIT",
+  "documentationUrl": "https://github.com/digorlima/Atlasmith#readme",
+  "changelogUrl": "https://github.com/digorlima/Atlasmith/blob/main/CHANGELOG.md",
+  "licensesUrl": "https://github.com/digorlima/Atlasmith/blob/main/LICENSE",
+  "dependencies": {
+    "com.unity.2d.sprite": "1.0.0"
+  }
+}

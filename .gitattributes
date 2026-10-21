@@ -1,0 +1,17 @@
+* text=auto
+
+# Scripts do Windows ficam em CRLF.
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# O Unity grava .meta e .asmdef em LF; manter igual evita diffs fantasmas.
+*.meta text eol=lf
+*.asmdef text eol=lf
+
+*.png binary
+*.ico binary
+*.kra binary
+*.krz binary
+*.exe binary
+*.dll binary
