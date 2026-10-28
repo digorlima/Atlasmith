@@ -135,16 +135,19 @@ namespace Atlasmith.Editor
         public bool IsRunning => Work != null && !Work.IsCompleted;
         public bool IsCompleted => Work == null || Work.IsCompleted;
 
-        /// <summary>0..1, aproximado (a leitura das camadas é a parte longa).</summary>
+        /// <summary>
+        /// 0..1, aproximado (a leitura das camadas é a parte longa). A busca por quem usa os
+        /// sprites que sairiam tem a barra dela, de 0 a 1: termina num diálogo, não no atlas.
+        /// </summary>
         public float Progress
         {
             get
             {
                 int stage = Volatile.Read(ref _stage);
-                if (stage == StageCheckingRemoval) return 0.82f;
-                if (stage > 0) return 0.8f + 0.06f * stage;
+                if (stage > 0 && stage != StageCheckingRemoval) return 0.8f + 0.06f * stage;
                 int total = Volatile.Read(ref _total);
-                return total <= 0 ? 0f : 0.8f * Math.Min(1f, Volatile.Read(ref _done) / (float)total);
+                float part = total <= 0 ? 0f : Math.Min(1f, Volatile.Read(ref _done) / (float)total);
+                return stage == StageCheckingRemoval ? part : 0.8f * part;
             }
         }
 
@@ -159,7 +162,7 @@ namespace Atlasmith.Editor
                     case 1: return text.StagePacking;
                     case 2: return text.StageComposing;
                     case 3: return text.StageSaving;
-                    case StageCheckingRemoval: return text.StageCheckingRemoval;
+                    case StageCheckingRemoval: return text.StageCheckingRemoval(Volatile.Read(ref _done), Volatile.Read(ref _total));
                     default: return text.StageReading(Volatile.Read(ref _done), Volatile.Read(ref _total));
                 }
             }
@@ -307,8 +310,9 @@ namespace Atlasmith.Editor
                     var removed = request.RemovedSprites(report);
                     if (removed.Count > 0)
                     {
+                        job.SetProgress(0, 0);
                         job.SetStage(AtlasGenerationJob.StageCheckingRemoval);
-                        return new GenerationOutput(report, null, guard.Check(removed, ct));
+                        return new GenerationOutput(report, null, guard.Check(removed, job.SetProgress, ct));
                     }
                 }
 
@@ -512,6 +516,8 @@ namespace Atlasmith.Editor
             }
 
             result.Log.Add(text.LogSummary(result.SpriteCount, result.KeptSprites, result.AddedSprites.Count, result.RemovedSprites.Count));
+            // Num atlas novo tudo é novo; os nomes só ajudam quando já havia um antes.
+            if (before != null && result.AddedSprites.Count > 0) result.Log.Add(text.LogAddedSprites(result.AddedSprites));
             foreach (string warning in result.Warnings) result.Log.Add(text.LogWarning(warning));
         }
 
@@ -540,7 +546,7 @@ namespace Atlasmith.Editor
                 foreach (var sprite in before.Sprites) _idByName[sprite.Name] = sprite.InternalId;
             }
 
-            public SpriteRemovalCheck Check(List<string> removed, CancellationToken ct)
+            public SpriteRemovalCheck Check(List<string> removed, Action<int, int> progress, CancellationToken ct)
             {
                 var hidden = new HashSet<string>(StringComparer.Ordinal);
                 if (_ignoreHidden)
@@ -561,7 +567,7 @@ namespace Atlasmith.Editor
 
                 bool scanned = _textureGuid.Length > 0 && ids.Count > 0;
                 var references = scanned
-                    ? SpriteReferenceScanner.Scan(_projectRoot, _textureGuid, ids.Values.ToList(), ct)
+                    ? SpriteReferenceScanner.Scan(_projectRoot, _textureGuid, ids.Values.ToList(), ct, SpriteReferenceScanner.IndexPathFor(_projectRoot), progress)
                     : new Dictionary<long, List<string>>();
 
                 var sprites = removed

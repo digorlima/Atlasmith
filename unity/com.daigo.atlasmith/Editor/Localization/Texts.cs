@@ -112,6 +112,7 @@ namespace Atlasmith.Editor
         public abstract string LogError(string message);
         public abstract string LogWarning(string message);
         public abstract string LogSummary(int sprites, int kept, int added, int removed);
+        public abstract string LogAddedSprites(IReadOnlyCollection<string> names);
         public abstract string GeneratedOk(string pngPath);
         public abstract string GenerationCancelled { get; }
         public abstract string GenerationFailedUnknown { get; }
@@ -121,7 +122,7 @@ namespace Atlasmith.Editor
         public abstract string WarnMaxTextureSize(int maxTextureSize, int atlasSide);
 
         // --- sprites que sairiam do atlas ---
-        public abstract string StageCheckingRemoval { get; }
+        public abstract string StageCheckingRemoval(int done, int total);
         public abstract string RemovalTitle { get; }
         public abstract string RemovalGenerateAnyway { get; }
         public abstract string RemovalIncludeHidden { get; }
@@ -301,6 +302,7 @@ namespace Atlasmith.Editor
             public override string LogWarning(string message) => $"aviso — {message}";
             public override string LogSummary(int sprites, int kept, int added, int removed) =>
                 $"Importado: {sprites} sprites ({kept} mantidos com o mesmo ID, {added} novos, {removed} removidos).";
+            public override string LogAddedSprites(IReadOnlyCollection<string> names) => $"Sprites novos: {Names(names)}.";
             public override string GeneratedOk(string pngPath) => $"Pronto — {pngPath} gerado e importado.";
             public override string GenerationCancelled => "Geração cancelada.";
             public override string GenerationFailedUnknown => "Não foi possível gerar o atlas.";
@@ -312,7 +314,8 @@ namespace Atlasmith.Editor
             public override string WarnMaxTextureSize(int maxTextureSize, int atlasSide) =>
                 $"O atlas tem {atlasSide}px, mas o Max Size da textura é {maxTextureSize}: o Unity vai reduzi-la. Aumente o Max Size no Inspector da textura.";
 
-            public override string StageCheckingRemoval => "Procurando quem usa os sprites que sairiam…";
+            public override string StageCheckingRemoval(int done, int total) =>
+                total > 0 ? $"Procurando quem usa os sprites que sairiam… {done}/{total} arquivos" : "Procurando quem usa os sprites que sairiam…";
             public override string RemovalTitle => "Sprites sairiam do atlas";
             public override string RemovalGenerateAnyway => "Remover e gerar";
             public override string RemovalIncludeHidden => "Incluir camadas ocultas";
@@ -485,6 +488,7 @@ namespace Atlasmith.Editor
             public override string LogWarning(string message) => $"warning — {message}";
             public override string LogSummary(int sprites, int kept, int added, int removed) =>
                 $"Imported: {sprites} sprites ({kept} kept with the same ID, {added} new, {removed} removed).";
+            public override string LogAddedSprites(IReadOnlyCollection<string> names) => $"New sprites: {Names(names)}.";
             public override string GeneratedOk(string pngPath) => $"Done — {pngPath} generated and imported.";
             public override string GenerationCancelled => "Generation cancelled.";
             public override string GenerationFailedUnknown => "Couldn't generate the atlas.";
@@ -496,7 +500,8 @@ namespace Atlasmith.Editor
             public override string WarnMaxTextureSize(int maxTextureSize, int atlasSide) =>
                 $"The atlas is {atlasSide}px but the texture's Max Size is {maxTextureSize}, so Unity will downscale it. Raise Max Size in the texture's Inspector.";
 
-            public override string StageCheckingRemoval => "Looking for uses of the sprites that would be removed…";
+            public override string StageCheckingRemoval(int done, int total) =>
+                total > 0 ? $"Looking for uses of the sprites that would be removed… {done}/{total} files" : "Looking for uses of the sprites that would be removed…";
             public override string RemovalTitle => "Sprites would leave the atlas";
             public override string RemovalGenerateAnyway => "Remove and generate";
             public override string RemovalIncludeHidden => "Include hidden layers";

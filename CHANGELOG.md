@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.1 — 2026-10-27
+
+Unity package only; the Windows app stays at 1.0.0.
+
+### Changed
+
+- The search for assets that use the sprites a regeneration would remove is much
+  faster. It reads files as bytes, skips binary ones and keeps an index in
+  `Library/Atlasmith`, so later searches only reread the files that changed. In a
+  project with about 14,500 candidate files (3.2 GB of text), a search went from
+  82 s to about 1 s the first time and 0.4 s after that.
+- The progress bar follows that search file by file instead of standing still.
+- After a regeneration, the log names the sprites that are new in the atlas.
+
 ## 1.0.0 — 2026-10-21
 
 First public release. The beta versions were called DaigoPacker.

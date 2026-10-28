@@ -127,7 +127,7 @@ https://github.com/digorlima/Atlasmith.git?path=/unity/com.daigo.atlasmith
 Or add it to `Packages/manifest.json`, pinned to a release:
 
 ```json
-"com.daigo.atlasmith": "https://github.com/digorlima/Atlasmith.git?path=/unity/com.daigo.atlasmith#v1.0.0"
+"com.daigo.atlasmith": "https://github.com/digorlima/Atlasmith.git?path=/unity/com.daigo.atlasmith#v1.0.1"
 ```
 
 The first time the package is added, Unity reimports every texture in the project
@@ -163,7 +163,11 @@ and borders start over from the sheet.
 
 The scan for references covers assets serialized as text (scenes, prefabs,
 animations, materials, ScriptableObjects, UI Toolkit files). Sprites loaded by name
-at runtime, through `Resources` or Addressables, are not detected.
+at runtime, through `Resources` or Addressables, are not detected. The first scan
+reads all of those files; what each one references is then kept in
+`Library/Atlasmith`, so later scans only reread the files that changed. Binary
+files, such as lighting data, store references as bytes and are skipped, and so are
+the folders Unity ignores (`.git`, `Samples~`).
 
 ### Coming from TexturePacker
 

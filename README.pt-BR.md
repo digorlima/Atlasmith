@@ -127,7 +127,7 @@ https://github.com/digorlima/Atlasmith.git?path=/unity/com.daigo.atlasmith
 Ou acrescente ao `Packages/manifest.json`, fixando uma versão:
 
 ```json
-"com.daigo.atlasmith": "https://github.com/digorlima/Atlasmith.git?path=/unity/com.daigo.atlasmith#v1.0.0"
+"com.daigo.atlasmith": "https://github.com/digorlima/Atlasmith.git?path=/unity/com.daigo.atlasmith#v1.0.1"
 ```
 
 Na primeira vez que o pacote entra no projeto, o Unity reimporta todas as texturas
@@ -162,6 +162,10 @@ referências a ele voltam a funcionar; o pivô e as bordas recomeçam pelos da p
 A busca de referências cobre os assets gravados como texto (cenas, prefabs,
 animações, materiais, ScriptableObjects, arquivos do UI Toolkit). Sprites carregados
 pelo nome em tempo de execução, via `Resources` ou Addressables, não são detectados.
+A primeira busca lê todos esses arquivos; o que cada um cita fica guardado em
+`Library/Atlasmith`, e as buscas seguintes só releem os arquivos que mudaram.
+Arquivos binários, como os de iluminação, guardam as referências em bytes e ficam de
+fora, assim como as pastas que o Unity ignora (`.git`, `Samples~`).
 
 ### Vindo do TexturePacker
 
